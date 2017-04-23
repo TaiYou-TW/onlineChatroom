@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Chatroom</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 10px; position: fixed; bottom: 35px; width: 100%; color:white;}
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(80, 80, 80); color:white; padding: 10px; border-radius: 10px; }
+      #messages {font-size:20px; list-style-type: none; margin: 0; padding: 0; overflow-y: auto; height: 82vh; display: inline-block; top:0px; position: fixed;}
+      #messages li { padding: 5px 10px; width: 100vw;}
+      #messages li:nth-child(odd) { background: #eee; }
+      #list li:nth-child(odd) { background: #9994; }
+      #list{
+        color:white;
+        background-color: gray;
+        font-size:15px;
+        width:20vw;
+        left:0;
+        top:0;
+        //position: fixed;
+        display: inline-block;
+        list-style-type: none;
+        margin: 0;
+        padding: 5px;
+        overflow: auto;
+        height: 93vh;
+      }
+      footer{
+        position: fixed;
+        bottom:0;
+        background-color: rgb(51,51,51);
+        width: 100vw;
+        color:white;
+        text-align: center;
+        padding: 10px;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var name = "";
+        var id = 0;
+        var socket = io().connect();
+        var input = document.getElementById('m');
+        $('form').submit(function(){
+          socket.emit('msg', $('#m').val());
+          $('#messages').append($('<li>').html(name+"："+$('#m').val()));
+          $('#m').val('');
+          return false;
+        });
+        input.addEventListener('focus',function(){
+          socket.emit('keyinIng', id);
+          id++;
+        })
+        input.addEventListener('blur',function(){
+          socket.emit('not_keyinIng', id);
+        })
+        socket.on('connect', function(){
+          var data = new Object;
+          name = prompt("你的名字是?");
+          data.name = name;
+          socket.emit('login',data);
+          update_list(data);
+          document.querySelector('#name').innerHTML = name;
+        })
+        socket.on('msg', function(data){
+          if(data.name != name)
+            $('#messages').append($('<li>').html(data.name+"："+data.msg));
+        });
+        socket.on('keyinIng', function(data){
+          $('#messages').append($('<li id='+id+'>').html(data.name+"："+data.msg));
+        });
+        socket.on('not_keyinIng', function(data){
+          var messages = document.getElementById('messages');
+          messages.removeChild(document.getElementById(id));
+        });
+        socket.on('list', function(data){
+          update_list(data);
+        })
+
+        function update_list(data){
+          var list = document.querySelector('#list');
+          var oLimit = document.querySelectorAll("#list li");
+          for(i = 0; i < oLimit.length; i++)
+            oLimit[i].parentNode.removeChild(oLimit[i]);
+          for(i = 0; i < data.length; i++){
+            if(data[i] != ""){
+              var li = document.createElement("li");        // Create a <button> element
+              var text = document.createTextNode(data[i]);       // Create a text node
+              li.appendChild(text);
+              list.appendChild(li);
+            }
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <ul id="list">線上：</ul>
+    <ul id="messages"></ul>
+    <form action="">
+      你是：<span id=name></span><br>
+      <input id="m" autocomplete="off" />
+      <button>Send</button>
+    </form>
+    <footer>Made By a24230928</footer>
+  </body>
+</html>
